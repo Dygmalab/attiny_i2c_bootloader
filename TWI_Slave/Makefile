@@ -28,7 +28,8 @@ CLOCK      ?= 8000000
 
 # Add something like this to Makefile.local if you haven't yet set up ~/.avrduderc with a default programmer.
 # PROGRAMMER = -c usbtiny -P usb
-# PROGRAMMER = -c dragon_isp -P usb
+PROGRAMMER = -c dragon_isp -P usb
+PROGRAMMER = -c stk500v2 -P /dev/ttyACM2
 
 # Add more objects for each .c file here
 OBJECTS    =  twi_slave.o
@@ -50,6 +51,7 @@ OPTIMIZATION = -Os
 
 
 AVRDUDE = $(AVRDUDE_PATH) $(PROGRAMMER) -p $(DEVICE)
+# start the text section at 0x1C00 instead of 0x0000
 COMPILE = $(GCC_PATH) -Wall -Wextra -Werror -pedantic $(OPTIMIZATION) -std=gnu11 -flto -mmcu=$(DEVICE) -DF_CPU=$(CLOCK)  -Wl,--section-start=.text=0x1C00
 
 # symbolic targets:
@@ -93,9 +95,14 @@ twi_slave.hex: twi_slave.elf
 	avr-objcopy -j .text -j .data -O ihex twi_slave.elf twi_slave.hex
 	avr-size --format=avr --mcu=$(DEVICE) twi_slave.elf
 	# write bootloader jump vector to beginning
-	sed -i'' -e '$$ d' twi_slave.hex # two dollar signs because Make otherwise interprets them
+	sed -i'' -e '$$ d' twi_slave.hex # delete last line - two dollar signs because Make otherwise interprets them
 	# write a new vector table to jump to the bootloader
 	# rjmp to 0x1C00, etc.
+	# https://rajeshkovvuri.wordpress.com/2011/10/28/anatomy-of-avr-hex-file/
+	# first 2 numbers are number of bytes to write, second 4 is address, next 4 are the data, last 2 are checksum
+	# opcode for rjmp is 1100 = 0xC. next 3 bytes are address. So all interrupts are vectored to DFF x 2 = 0x1C00
+	# as rjmp makes pc <- pc + 1 + k.
+	# http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-0856-AVR-Instruction-Set-Manual.pdf
 	echo ':02000000FFCD32' >> twi_slave.hex
 	echo ':02000200FFCD30' >> twi_slave.hex
 	echo ':02000400FFCD2E' >> twi_slave.hex
