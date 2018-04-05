@@ -8,7 +8,8 @@
 #include "common_define.h"
 
 // AD01: lower two bits of device address
-#define AD01 ((PINB & _BV(0)) | (PINB & _BV(1)))
+#define AD01 0
+//((PINB & _BV(0)) | (PINB & _BV(1)))
 
 //configuring LAST_INTVECT_ADDRESS as per device selected
 /*****************************************************************************/
@@ -36,16 +37,17 @@ uint16_t pageAddr;
 uint8_t frame = 0;
 
 void setup_pins() {
-    DDRC |= _BV(7); // C7 is COMM_EN - this turns on the PCA9614 that does differential i2c between hands
-    PORTC |= _BV(7); // Without it, the right hand can't talk to the world.
+//    DDRC |= _BV(7); // C7 is COMM_EN - this turns on the PCA9614 that does differential i2c between hands
+//    PORTC |= _BV(7); // Without it, the right hand can't talk to the world.
+    DDRA |= _BV(0);
 
 
     // DDRB &= ~(_BV(0) | _BV(1) ); // set the AD01 ports as inputs
 
     // DDRB |= _BV(5)|_BV(3)|_BV(2); /* Set MOSI, SCK, SS all to outputs so we can use them to clear out the LEDs*/
     // TODO: Replace the last two lines with otentially sketchy optimization
-    DDRB = _BV(5)|_BV(3)|_BV(2); //0b00101100;
-    PORTB &= ~(_BV(5)|_BV(3)|_BV(2)); // Drive MOSI/SCK/SS low
+//    DDRB = _BV(5)|_BV(3)|_BV(2); //0b00101100;
+ //   PORTB &= ~(_BV(5)|_BV(3)|_BV(2)); // Drive MOSI/SCK/SS low
 }
 
 void init_twi() {
@@ -58,7 +60,10 @@ inline void wait_for_activity(uint8_t ack) {
     // possibly Enable ACK and clear pending interrupts.
     TWCR = _BV(TWINT) | _BV(TWEN) | (ack == ACK  ? _BV(TWEA) : 0);
 
-    do {} while ((TWCR & _BV(TWINT)) == 0);
+    do {
+            PORTA |= _BV(0);
+            PORTA &= ~_BV(0);
+    } while ((TWCR & _BV(TWINT)) == 0);
     wdt_reset();
 }
 
@@ -198,7 +203,7 @@ void process_page_update() {
 void cleanup_and_run_application(void) {
     wdt_disable(); // After Reset the WDT state does not change
 
-    asm volatile ("rjmp __vectors-0x1bc8");  // jump to start of user code at 0x38
+    asm volatile ("rjmp __vectors-0x1aaa");  // jump to start of user code at 0x38
 
     for (;;); // Make sure function does not return to help compiler optimize
 }
@@ -372,9 +377,10 @@ int main() {
         init_twi();
         // TODO - I'm not sure it's safe to not set this short little watchdog here./
 
-        wdt_enable(WDTO_60MS);
+        wdt_enable(WDTO_120MS);
         while (1) {
             read_and_process_packet(); // Process the TWI Commands
+
         }
     } else {
         cleanup_and_run_application();
