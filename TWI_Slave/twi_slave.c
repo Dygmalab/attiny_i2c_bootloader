@@ -203,7 +203,7 @@ void process_page_update() {
 void cleanup_and_run_application(void) {
     wdt_disable(); // After Reset the WDT state does not change
 
-    asm volatile ("rjmp __vectors-0x1aaa");  // jump to start of user code at 0x38
+    asm volatile ("rjmp __vectors+0x1aaa");  // jump to start of user code at 0x0156
 
     for (;;); // Make sure function does not return to help compiler optimize
 }
