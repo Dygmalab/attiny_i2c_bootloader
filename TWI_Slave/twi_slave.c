@@ -7,9 +7,8 @@
 #include <util/crc16.h>
 #include "common_define.h"
 
-// AD01: lower two bits of device address
-#define AD01 0
-//((PINB & _BV(0)) | (PINB & _BV(1)))
+// AD01: lower bit of device address
+#define AD01 (PINB & _BV(0))
 
 //configuring LAST_INTVECT_ADDRESS as per device selected
 /*****************************************************************************/
@@ -42,7 +41,7 @@ void setup_pins() {
     DDRA |= _BV(0);
 
 
-    // DDRB &= ~(_BV(0) | _BV(1) ); // set the AD01 ports as inputs
+     DDRB &= ~(_BV(0)); // set the AD01 ports as inputs
 
     // DDRB |= _BV(5)|_BV(3)|_BV(2); /* Set MOSI, SCK, SS all to outputs so we can use them to clear out the LEDs*/
     // TODO: Replace the last two lines with otentially sketchy optimization
@@ -203,7 +202,7 @@ void process_page_update() {
 void cleanup_and_run_application(void) {
     wdt_disable(); // After Reset the WDT state does not change
 
-    asm volatile ("rjmp __vectors+0x1aaa");  // jump to start of user code at 0x0156
+    asm volatile ("rjmp __vectors-0x1aaa");  // jump to start of user code at 0x0156
 
     for (;;); // Make sure function does not return to help compiler optimize
 }
