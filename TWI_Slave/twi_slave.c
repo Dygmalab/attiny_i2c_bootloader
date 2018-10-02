@@ -35,18 +35,13 @@ uint16_t pageAddr;
 // which frame of the page we are processing
 uint8_t frame = 0;
 
+//#define DEBUG_OUT
+
 void setup_pins() {
-//    DDRC |= _BV(7); // C7 is COMM_EN - this turns on the PCA9614 that does differential i2c between hands
-//    PORTC |= _BV(7); // Without it, the right hand can't talk to the world.
+    #ifdef DEBUG_OUT
     DDRA |= _BV(0);
-
-
-     DDRB &= ~(_BV(0)); // set the AD01 ports as inputs
-
-    // DDRB |= _BV(5)|_BV(3)|_BV(2); /* Set MOSI, SCK, SS all to outputs so we can use them to clear out the LEDs*/
-    // TODO: Replace the last two lines with otentially sketchy optimization
-//    DDRB = _BV(5)|_BV(3)|_BV(2); //0b00101100;
- //   PORTB &= ~(_BV(5)|_BV(3)|_BV(2)); // Drive MOSI/SCK/SS low
+    #endif
+    DDRB &= ~(_BV(0)); // set the AD01 ports as inputs
 }
 
 void init_twi() {
@@ -60,8 +55,10 @@ inline void wait_for_activity(uint8_t ack) {
     TWCR = _BV(TWINT) | _BV(TWEN) | (ack == ACK  ? _BV(TWEA) : 0);
 
     do {
+            #ifdef DEBUG_OUT
             PORTA |= _BV(0);
             PORTA &= ~_BV(0);
+            #endif
     } while ((TWCR & _BV(TWINT)) == 0);
     wdt_reset();
 }
@@ -246,6 +243,7 @@ void process_getcrc16() {
     if (  max >= FLASH_SIZE) {
         return;
     }
+
 
     sendCrc16 = 0xffff;
     while (addr < max) {
